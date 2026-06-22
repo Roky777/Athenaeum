@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Athenaeum — Step-by-Step Walkthrough</title>
+<style>
+  :root{ --navy:#26415e; --blue:#2f5170; --accent:#a8503a; --ink:#2c2a26;
+         --muted:#7a7263; --line:#ece2d4; --code-bg:#23303f; --soft:#f4ece0; }
+  *{box-sizing:border-box;}
+  html{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  body{font-family:"Segoe UI",Helvetica,Arial,sans-serif;color:var(--ink);line-height:1.55;margin:0;font-size:11.5pt;}
+  h1,h2,h3{color:var(--navy);line-height:1.25;}
+  h2{font-size:18pt;border-bottom:3px solid var(--accent);padding-bottom:6px;margin:28px 0 10px;}
+  code{font-family:"SF Mono",Consolas,Menlo,monospace;background:#f1e7d9;color:#9a3f2b;padding:1px 5px;border-radius:4px;font-size:9.5pt;}
+  pre{background:var(--code-bg);color:#e8edf2;padding:12px 14px;border-radius:8px;overflow:auto;font-size:8.6pt;line-height:1.5;font-family:"SF Mono",Consolas,monospace;border-left:4px solid var(--accent);margin:8px 0;}
+  pre .c{color:#8aa0b6;font-style:italic;} pre .k{color:#8cc6ff;} pre .s{color:#a9d7b0;}
+  .step{border:1px solid var(--line);border-radius:10px;padding:0 16px 12px;margin:14px 0;page-break-inside:avoid;background:#fff;}
+  .step h3{display:flex;align-items:center;gap:12px;margin:0 -16px 8px;padding:10px 16px;background:var(--soft);border-radius:10px 10px 0 0;border-bottom:1px solid var(--line);font-size:12.5pt;}
+  .num{background:var(--navy);color:#fff;width:30px;height:30px;flex:0 0 30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11pt;}
+  .lab{font-weight:700;color:var(--blue);display:inline-block;min-width:74px;}
+  .step p{margin:6px 0;}
+  .concept{background:#f6efe4;border-left:4px solid var(--accent);padding:8px 12px;border-radius:6px;margin:8px 0;font-size:10.3pt;}
+  .concept b{color:#9a3f2b;}
+  .phase{background:linear-gradient(135deg,#26415e,#2f5170);color:#fff;padding:12px 18px;border-radius:10px;margin:30px 0 6px;font-size:13pt;font-weight:700;}
+  .cover{height:95vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;background:linear-gradient(140deg,#26415e,#2f5170);color:#fff;border-radius:14px;}
+  .cover h1{color:#fff;font-size:34pt;margin:0 30px;font-family:Georgia,serif;}
+  .cover .sub{font-size:14pt;opacity:.92;margin-top:14px;}
+  .page-break{page-break-before:always;}
+  @page{margin:15mm 13mm;}
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>Athenaeum</h1>
+  <div class="sub">Library Management System — How We Built It</div>
+  <div class="sub" style="font-size:11pt;">A step-by-step walkthrough: every step, why we did it,<br>and the concept behind it.</div>
+  <div class="sub" style="font-size:11pt;margin-top:40px;">DBMS Capstone · MySQL · deployed on Vercel + Aiven</div>
+</div>
+
+<div class="page-break"></div>
+<p style="font-size:10.5pt;color:var(--muted);">This document walks through the project in the order
+we built it — from the first idea to a live website. Each step states <b>What</b> we did, <b>Why</b>,
+and explains the <b>Concept</b> where a new idea appears. 47 steps across 10 phases.</p>
+
+<!-- PHASE 1 -->
+<div class="phase">PHASE 1 — Understanding the Problem &amp; Planning</div>
+
+<div class="step"><h3><span class="num">1</span> Choose and understand the project</h3>
+<p><span class="lab">What:</span> We chose the <b>Library Management System</b> and wrote, in plain English,
+everything a library does: hold books, track copies, register members, lend/return books, charge late
+fines, and take reservations.</p>
+<p><span class="lab">Why:</span> A database is a mirror of a real process — you must understand the process first.</p></div>
+
+<div class="step"><h3><span class="num">2</span> Find the entities (the "nouns")</h3>
+<p><span class="lab">What:</span> We underlined the key nouns — Publisher, Category, Author, Book, Copy,
+Member, Staff, Borrowing, Fine, Reservation — each becomes a table.</p>
+<div class="concept"><b>Concept — Entity:</b> a real-world thing we store data about. Each entity becomes a
+<b>table</b>; one row = one instance.</div></div>
+
+<div class="step"><h3><span class="num">3</span> Decide the relationships</h3>
+<p><span class="lab">What:</span> A publisher has many books; a book has many authors and vice-versa; a book
+has many copies; a member has many loans; a loan may have one fine.</p>
+<div class="concept"><b>Concept — Cardinality:</b> how many rows relate on each side — <b>1:1</b>, <b>1:M</b>,
+<b>M:N</b>. We included all three.</div></div>
+
+<div class="step"><h3><span class="num">4</span> Choose MySQL + InnoDB</h3>
+<p><span class="lab">What:</span> MySQL as the database, InnoDB as the engine for every table.</p>
+<div class="concept"><b>Concept — Storage engine:</b> InnoDB supports <b>foreign keys</b> and <b>transactions</b>
+(ACID); the older MyISAM does not.</div></div>
+
+<div class="step"><h3><span class="num">5</span> Decide the 3-tier architecture</h3>
+<p><span class="lab">What:</span> Browser UI → small server (Node/Express) → MySQL.</p>
+<p><span class="lab">Why:</span> A browser cannot reach MySQL directly, so a server sits in between.</p>
+<div class="concept"><b>Concept — 3-tier architecture:</b> Presentation (browser) → Application (API) →
+Data (database). We later host these on <b>Vercel</b> (app) and <b>Aiven</b> (database).</div></div>
+
+<!-- PHASE 2 -->
+<div class="phase">PHASE 2 — Designing the Schema (on paper first)</div>
+
+<div class="step"><h3><span class="num">6</span> Draw the ER diagram</h3>
+<p><span class="lab">What:</span> An Entity–Relationship diagram of all 11 entities and the lines between them.</p>
+<div class="concept"><b>Concept — ER model:</b> boxes (entities), their attributes, and lines (relationships).
+Crow's-foot notation marks the "many" side.</div></div>
+
+<div class="step"><h3><span class="num">7</span> Choose surrogate primary keys</h3>
+<p><span class="lab">What:</span> Each table gets an auto-increment id (<code>book_id</code>, <code>member_id</code>…).</p>
+<div class="concept"><b>Concept — Primary &amp; surrogate key:</b> the PK uniquely identifies a row and can't be NULL;
+a surrogate key is an artificial id used because it never changes.</div></div>
+
+<div class="step"><h3><span class="num">8</span> Separate Book (title) from Book Copy (physical item)</h3>
+<p><span class="lab">What:</span> <code>book</code> holds title facts once; <code>book_copy</code> holds each
+physical copy with its own barcode and status.</p>
+<div class="concept"><b>Concept — Avoiding redundancy:</b> store each fact in exactly one place — the core of good design.</div></div>
+
+<div class="step"><h3><span class="num">9</span> Resolve M:N with a junction table</h3>
+<p><span class="lab">What:</span> <code>book_author</code> holds <code>(book_id, author_id)</code> pairs.</p>
+<div class="concept"><b>Concept — Junction table:</b> the standard way to implement many-to-many; its PK is the
+<b>composite</b> of two foreign keys.</div></div>
+
+<div class="step"><h3><span class="num">10</span> Model the recursive category tree</h3>
+<p><span class="lab">What:</span> <code>category.parent_id</code> points back to <code>category</code> (Physics → Science).</p>
+<div class="concept"><b>Concept — Recursive relationship:</b> a table related to itself via a foreign key to its own PK.</div></div>
+
+<div class="step"><h3><span class="num">11</span> Model the 1:1 Fine</h3>
+<p><span class="lab">What:</span> <code>fine.borrow_id</code> is a foreign key that is also <b>UNIQUE</b>.</p>
+<div class="concept"><b>Concept — 1:1 relationship:</b> a UNIQUE foreign key lets each loan have at most one fine.</div></div>
+
+<!-- PHASE 3 -->
+<div class="page-break"></div>
+<div class="phase">PHASE 3 — Creating the Database (sql/01_schema.sql)</div>
+
+<div class="step"><h3><span class="num">12</span> Create the database</h3>
+<pre><span class="k">CREATE DATABASE</span> library_db <span class="k">CHARACTER SET</span> utf8mb4 <span class="k">COLLATE</span> utf8mb4_unicode_ci;</pre>
+<p><span class="lab">What:</span> A fresh database with full-Unicode support.</p>
+<div class="concept"><b>Concept — DDL:</b> Data Definition Language (CREATE, ALTER, DROP) defines structure.</div></div>
+
+<div class="step"><h3><span class="num">13</span> Create <code>publisher</code></h3>
+<pre>publisher_id <span class="k">INT AUTO_INCREMENT PRIMARY KEY</span>,
+name <span class="k">VARCHAR</span>(120) <span class="k">NOT NULL UNIQUE</span>, country <span class="k">VARCHAR</span>(60) <span class="k">DEFAULT</span> <span class="s">'India'</span></pre>
+<div class="concept"><b>Concept — Constraints:</b> PRIMARY KEY, NOT NULL, UNIQUE, DEFAULT, AUTO_INCREMENT.</div></div>
+
+<div class="step"><h3><span class="num">14</span> Create <code>category</code> with a self-FK</h3>
+<pre><span class="k">FOREIGN KEY</span>(parent_id) <span class="k">REFERENCES</span> category(category_id) <span class="k">ON DELETE SET NULL</span></pre>
+<div class="concept"><b>Concept — Referential actions:</b> CASCADE / SET NULL / RESTRICT decide what happens to child rows.</div></div>
+
+<div class="step"><h3><span class="num">15</span> Create <code>author</code> with a CHECK</h3>
+<pre><span class="k">CHECK</span> (birth_year <span class="k">IS NULL OR</span> birth_year <span class="k">BETWEEN</span> 1000 <span class="k">AND</span> 2025)</pre>
+<div class="concept"><b>Concept — Domain integrity / CHECK:</b> keeps a value within a valid range.</div></div>
+
+<div class="step"><h3><span class="num">16</span> Create <code>book</code> with two foreign keys</h3>
+<pre><span class="k">FOREIGN KEY</span>(publisher_id) <span class="k">REFERENCES</span> publisher(publisher_id) <span class="k">ON DELETE RESTRICT</span></pre>
+<div class="concept"><b>Concept — Referential integrity:</b> a foreign key must match an existing primary key (or be NULL).</div></div>
+
+<div class="step"><h3><span class="num">17</span> Create the <code>book_author</code> junction</h3>
+<pre><span class="k">PRIMARY KEY</span> (book_id, author_id)</pre>
+<div class="concept"><b>Concept — Composite key:</b> a primary key of two columns; the pair must be unique.</div></div>
+
+<div class="step"><h3><span class="num">18</span> Create <code>book_copy</code> with an ENUM status</h3>
+<pre>status <span class="k">ENUM</span>(<span class="s">'Available'</span>,<span class="s">'Borrowed'</span>,<span class="s">'Reserved'</span>,<span class="s">'Lost'</span>,<span class="s">'Damaged'</span>)</pre>
+<div class="concept"><b>Concept — ENUM:</b> restricts a column to a fixed list of values.</div></div>
+
+<div class="step"><h3><span class="num">19</span> Create <code>member</code> with a soft-delete flag</h3>
+<pre>email <span class="k">VARCHAR</span>(120) <span class="k">NOT NULL UNIQUE</span>, is_active <span class="k">BOOLEAN DEFAULT TRUE</span></pre>
+<div class="concept"><b>Concept — Soft delete:</b> deactivate instead of removing, to keep history valid.</div></div>
+
+<div class="step"><h3><span class="num">20</span> Create <code>staff</code></h3>
+<p><span class="lab">What:</span> The librarians who issue books, so each loan records who processed it.</p></div>
+
+<div class="step"><h3><span class="num">21</span> Create <code>borrowing</code> — the central transaction table</h3>
+<pre>borrow_date <span class="k">DATE</span>, due_date <span class="k">DATE</span>, return_date <span class="k">DATE NULL</span>,  <span class="c">-- NULL = still out</span>
+<span class="k">CHECK</span>(due_date &gt;= borrow_date)</pre>
+<div class="concept"><b>Concept — NULL:</b> means "not yet". A NULL return date marks an active loan.</div></div>
+
+<div class="step"><h3><span class="num">22</span> Create <code>fine</code> (1:1)</h3>
+<pre>borrow_id <span class="k">INT NOT NULL UNIQUE</span></pre></div>
+
+<div class="step"><h3><span class="num">23</span> Create <code>reservation</code></h3>
+<p><span class="lab">What:</span> Lets a member reserve a title (Pending/Fulfilled/Cancelled).</p></div>
+
+<div class="step"><h3><span class="num">24</span> Add indexes</h3>
+<pre><span class="k">CREATE INDEX</span> idx_book_title <span class="k">ON</span> book(title);</pre>
+<div class="concept"><b>Concept — Index:</b> a sorted lookup that speeds searches; costs space and slightly slows writes.</div></div>
+
+<div class="step"><h3><span class="num">25</span> Demonstrate ALTER TABLE</h3>
+<pre><span class="k">ALTER TABLE</span> member <span class="k">ADD COLUMN</span> last_updated <span class="k">TIMESTAMP</span> ...</pre>
+<div class="concept"><b>Concept — ALTER:</b> a DDL command that changes an existing table.</div></div>
+
+<!-- PHASE 4 -->
+<div class="page-break"></div>
+<div class="phase">PHASE 4 — Checking Normalization</div>
+
+<div class="step"><h3><span class="num">26</span> First Normal Form (1NF)</h3>
+<p><span class="lab">What:</span> Every cell atomic — multi-valued authors/copies moved to their own tables.</p>
+<div class="concept"><b>Concept — 1NF:</b> atomic values, no repeating groups.</div></div>
+
+<div class="step"><h3><span class="num">27</span> Second Normal Form (2NF)</h3>
+<p><span class="lab">What:</span> In <code>book_author</code>, the only non-key column depends on the whole composite key.</p>
+<div class="concept"><b>Concept — 2NF / partial dependency:</b> no non-key column may depend on part of the key.</div></div>
+
+<div class="step"><h3><span class="num">28</span> Third Normal Form (3NF)</h3>
+<p><span class="lab">What:</span> No non-key column depends on another non-key column (publisher city lives in
+<code>publisher</code>, not <code>book</code>).</p>
+<div class="concept"><b>Concept — 3NF / transitive dependency:</b> every non-key attribute depends only on the key —
+no redundancy, no anomalies.</div></div>
+
+<!-- PHASE 5 -->
+<div class="phase">PHASE 5 — Inserting Sample Data (sql/02_data.sql)</div>
+
+<div class="step"><h3><span class="num">29</span> Insert reference data first</h3>
+<p><span class="lab">What:</span> Publishers, categories, authors before books.</p>
+<div class="concept"><b>Concept — Insertion order:</b> parent (referenced) tables load before child tables, or the FK check fails.</div></div>
+
+<div class="step"><h3><span class="num">30</span> Insert books + author links</h3>
+<p><span class="lab">What:</span> 25 books, then the <code>book_author</code> pairs (some with multiple authors).</p></div>
+
+<div class="step"><h3><span class="num">31</span> Insert copies, members, staff</h3>
+<p><span class="lab">What:</span> 40 copies (some Lost/Damaged), 20 members, 5 staff.</p></div>
+
+<div class="step"><h3><span class="num">32</span> Insert borrowings — a deliberate mix</h3>
+<p><span class="lab">What:</span> 30 loans: returned, returned-late, active, and overdue.</p>
+<p><span class="lab">Why:</span> So the overdue/fine views return real results in the demo.</p></div>
+
+<div class="step"><h3><span class="num">33</span> Insert fines and reservations</h3>
+<p><span class="lab">What:</span> Completes the dataset to ~200 records (over the 100 minimum).</p>
+<div class="concept"><b>Concept — DML:</b> Data Manipulation Language (INSERT/UPDATE/DELETE/SELECT).</div></div>
+
+<!-- PHASE 6 -->
+<div class="page-break"></div>
+<div class="phase">PHASE 6 — Views (sql/03_views.sql)</div>
+
+<div class="step"><h3><span class="num">34</span> Create <code>vw_book_catalogue</code></h3>
+<pre><span class="k">GROUP_CONCAT</span>(... <span class="k">SEPARATOR</span> <span class="s">', '</span>) <span class="k">AS</span> authors</pre>
+<p><span class="lab">What:</span> Joins book+category+publisher+authors into one row.</p>
+<div class="concept"><b>Concept — View:</b> a stored SELECT used like a virtual table; hides complex joins, enables reuse.</div></div>
+
+<div class="step"><h3><span class="num">35</span> Availability, active-loans, fines views</h3>
+<p><span class="lab">What:</span> Power the dashboard and tables directly.</p>
+<div class="concept"><b>Concept — Derived attribute:</b> "days overdue" is computed on the fly with
+<code>DATEDIFF(CURDATE(), due_date)</code>, never stored.</div></div>
+
+<!-- PHASE 7 -->
+<div class="phase">PHASE 7 — Advanced Queries (sql/04_queries.sql)</div>
+
+<div class="step"><h3><span class="num">36</span> JOIN queries</h3>
+<p><span class="lab">What:</span> Loans with member+title, members who never borrowed (LEFT JOIN), sub-categories beside
+parents (self join).</p>
+<div class="concept"><b>Concept — JOIN types:</b> INNER, LEFT, SELF — we use all three.</div></div>
+
+<div class="step"><h3><span class="num">37</span> Aggregates + GROUP BY / HAVING</h3>
+<pre><span class="k">GROUP BY</span> b.book_id <span class="k">HAVING</span> <span class="k">COUNT</span>(br.borrow_id) &gt;= 2</pre>
+<div class="concept"><b>Concept — WHERE vs HAVING:</b> WHERE filters rows before grouping; HAVING filters groups after.</div></div>
+
+<div class="step"><h3><span class="num">38</span> Nested / correlated subqueries</h3>
+<pre><span class="k">WHERE</span> price &gt; (<span class="k">SELECT AVG</span>(price) <span class="k">FROM</span> book)        <span class="c">-- scalar</span>
+<span class="k">WHERE EXISTS</span> (<span class="k">SELECT</span> 1 <span class="k">FROM</span> borrowing ...)        <span class="c">-- correlated</span></pre>
+<div class="concept"><b>Concept — Subquery types:</b> scalar, correlated (EXISTS), and IN / NOT IN.</div></div>
+
+<!-- PHASE 8 -->
+<div class="phase">PHASE 8 — Logic in the Database (sql/05_procedures.sql)</div>
+
+<div class="step"><h3><span class="num">39</span> Triggers</h3>
+<pre><span class="k">IF</span> v_status &lt;&gt; <span class="s">'Available' THEN SIGNAL</span> ...  <span class="c">-- block bad loan</span></pre>
+<p><span class="lab">What:</span> Block issuing an unavailable copy; auto-mark a copy Borrowed on loan; auto-create a
+fine + free the copy on a late return.</p>
+<div class="concept"><b>Concept — Trigger:</b> code that runs automatically on INSERT/UPDATE/DELETE.
+<code>OLD</code>/<code>NEW</code> hold the row before/after; <code>SIGNAL</code> raises an error.</div></div>
+
+<div class="step"><h3><span class="num">40</span> Stored procedures + transactions</h3>
+<pre><span class="k">DECLARE EXIT HANDLER FOR</span> SQLEXCEPTION <span class="k">BEGIN ROLLBACK</span>; <span class="k">RESIGNAL</span>; <span class="k">END</span>;
+<span class="k">START TRANSACTION</span>; ... <span class="k">COMMIT</span>;</pre>
+<p><span class="lab">What:</span> <code>sp_issue_book</code>, <code>sp_return_book</code>, <code>sp_pay_member_fines</code>,
+plus a function <code>fn_member_balance</code>.</p>
+<div class="concept"><b>Concept — Transaction &amp; ACID:</b> all-or-nothing (Atomicity), valid (Consistency),
+isolated (Isolation), permanent once committed (Durability).</div></div>
+
+<!-- PHASE 9 -->
+<div class="page-break"></div>
+<div class="phase">PHASE 9 — Building the Application (Athenaeum)</div>
+
+<div class="step"><h3><span class="num">41</span> Build the backend API (Express)</h3>
+<pre>app.get(<span class="s">'/api/books'</span>, (req,res) =&gt; pool.query(<span class="s">'SELECT * FROM vw_book_catalogue ...'</span>) ...);
+app.post(<span class="s">'/api/loans'</span>, ... <span class="s">'CALL sp_issue_book(?,?,?,?,@bid)'</span> ...);</pre>
+<p><span class="lab">What:</span> REST endpoints that read the views and call the stored procedures, returning JSON.</p>
+<div class="concept"><b>Concept — API / REST:</b> URLs the frontend calls (e.g. <code>/api/books</code>) to get/change data.</div></div>
+
+<div class="step"><h3><span class="num">42</span> Build the front-end (vanilla HTML/CSS/JS)</h3>
+<p><span class="lab">What:</span> A single page named <b>Athenaeum</b> — Home, Catalogue, On Loan, Issue, Members, Fines.</p>
+<p><span class="lab">Why:</span> The brief recommends HTML/CSS/JS and a simple UI keeps the focus on the database.</p></div>
+
+<div class="step"><h3><span class="num">43</span> Design a warm, handmade look</h3>
+<p><span class="lab">What:</span> An editorial theme — a script logo, Playfair serif headings, a hero banner with an
+overlaid panel, a cream paper palette, and clean white tables.</p>
+<p><span class="lab">Why:</span> A considered, human design earns the "user-friendly design" credit and reads as real, not generic.</p>
+<div class="concept"><b>Concept — Separation of concerns:</b> structure (HTML), style (CSS) and behaviour (JS) live in
+separate files, so the look can change without touching the logic.</div></div>
+
+<div class="step"><h3><span class="num">44</span> Connect front-end to back-end with fetch()</h3>
+<pre><span class="k">const</span> rows = <span class="k">await</span> fetch(<span class="s">'/api/books'</span>).then(r =&gt; r.json());</pre>
+<p><span class="lab">What:</span> JavaScript requests data and renders tables; Issue/Return POST back. Trigger errors
+(e.g. "Copy not available") flow back and are shown to the user.</p>
+<div class="concept"><b>Concept — fetch / AJAX:</b> JavaScript talking to the server in the background to update the page.</div></div>
+
+<!-- PHASE 10 -->
+<div class="phase">PHASE 10 — Hosting it Online</div>
+
+<div class="step"><h3><span class="num">45</span> Run locally with Docker (development)</h3>
+<pre>docker compose up -d   <span class="c"># MySQL + auto-loads sql/</span>
+npm start              <span class="c"># http://localhost:3000</span></pre>
+<div class="concept"><b>Concept — Docker / container:</b> a portable package that runs MySQL the same way on any machine.</div></div>
+
+<div class="step"><h3><span class="num">46</span> Host the database on Aiven (cloud MySQL)</h3>
+<pre><span class="c"># import the combined script into the cloud DB</span>
+docker run --rm -i -v <span class="s">"$PWD/sql:/s"</span> mysql:8.0 \
+  sh -c <span class="s">"mysql -h HOST -P PORT -u avnadmin -pPASS --ssl-mode=REQUIRED &lt; /s/init.sql"</span></pre>
+<p><span class="lab">What:</span> Created a free MySQL service on Aiven and imported <code>sql/init.sql</code> (schema +
+data + views + procedures).</p>
+<p><span class="lab">Why:</span> Vercel cannot host a database, so the data lives on a real cloud MySQL that supports
+foreign keys.</p>
+<div class="concept"><b>Concept — Managed database / TLS:</b> a cloud-run database; connections are encrypted, so the app
+connects with SSL enabled.</div></div>
+
+<div class="step"><h3><span class="num">47</span> Deploy the app on Vercel</h3>
+<pre><span class="c"># Vercel reads these environment variables (set in the dashboard):</span>
+MYSQL_URL = mysql://avnadmin:****@HOST:PORT/library_db
+DB_SSL    = true</pre>
+<p><span class="lab">What:</span> Imported the GitHub repo into Vercel; <code>vercel.json</code> serves
+<code>public/</code> and routes <code>/api/*</code> to the serverless function in <code>api/index.js</code>.
+The database URL is supplied as an environment variable, then we redeploy.</p>
+<p><span class="lab">Why:</span> This gives a public URL where the live front-end talks to the live database — the
+full 3-tier system, online.</p>
+<div class="concept"><b>Concept — Serverless &amp; environment variables:</b> the API runs on demand (no always-on server);
+secrets like the DB URL are injected as environment variables, never hard-coded.</div></div>
+
+<p style="margin-top:34px;text-align:center;color:var(--muted);">— End of Walkthrough · 47 steps across 10 phases —</p>
+
+</body>
+</html>

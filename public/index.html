@@ -3,114 +3,113 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Athenaeum · Library Desk</title>
+  <title>Athenaeum · A Little Library</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Kaushan+Script&family=Playfair+Display:ital,wght@0,500;0,600;1,500&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<div class="app">
 
-  <!-- ---------------- sidebar ---------------- -->
-  <aside class="sidebar">
-    <div class="brand">
-      <span class="brand-mark">A</span>
-      <div>
-        <div class="brand-name">Athenaeum</div>
-        <div class="brand-sub">Library Desk</div>
-      </div>
-    </div>
-
+  <!-- ---------------- header ---------------- -->
+  <header class="site-head">
+    <div class="logo">Athenaeum</div>
     <nav class="nav">
-      <button class="nav-item active" data-tab="dashboard"><span>◆</span> Overview</button>
-      <button class="nav-item" data-tab="books"><span>❦</span> Catalogue</button>
-      <button class="nav-item" data-tab="loans"><span>↻</span> On Loan</button>
-      <button class="nav-item" data-tab="issue"><span>＋</span> Issue a Book</button>
-      <button class="nav-item" data-tab="members"><span>☺</span> Members</button>
-      <button class="nav-item" data-tab="fines"><span>₹</span> Fines</button>
+      <button class="nav-item active" data-tab="dashboard">Home</button>
+      <button class="nav-item" data-tab="books">Catalogue</button>
+      <button class="nav-item" data-tab="loans">On Loan</button>
+      <button class="nav-item" data-tab="issue">Issue</button>
+      <button class="nav-item" data-tab="members">Members</button>
+      <button class="nav-item" data-tab="fines">Fines</button>
     </nav>
+    <div class="conn"><span class="dot" id="connDot"></span><span id="connText"></span></div>
+  </header>
 
-    <div class="side-foot">
-      <span class="dot" id="connDot"></span>
-      <span id="connText">connecting…</span>
-    </div>
-  </aside>
+  <main>
 
-  <!-- ---------------- main ---------------- -->
-  <main class="main">
-
+    <!-- ===== HOME ===== -->
     <section id="dashboard" class="panel active">
-      <header class="page-head">
-        <h1>Good day at the desk</h1>
-        <p>A quick look at the shelves and the borrowers today.</p>
-      </header>
-      <div class="stat-row" id="statCards"></div>
-      <div class="hint-card">
-        <h3>How this desk works</h3>
-        <p>Every action here runs against a live MySQL database. Issuing or returning a book
-        calls a stored procedure, and late fines are raised automatically by a database trigger —
-        the app never decides those rules on its own.</p>
+      <div class="hero">
+        <div class="hero-panel">
+          <h1>Athenaeum</h1>
+          <p>Go ahead and borrow the book. No late-night judgement from me, ever.</p>
+          <button class="ghost-btn" onclick="goTo('books')">Browse the shelves</button>
+        </div>
       </div>
+
+      <section class="intro">
+        <h2>At the desk today</h2>
+        <p>A small, well-loved library running on a real MySQL database. Every loan, return
+           and fine you see below is stored, checked and calculated by the database itself.</p>
+      </section>
+
+      <div class="stat-row" id="statCards"></div>
+
+      <section class="note-band">
+        <p><em>How it works —</em> issuing or returning a book calls a stored procedure, and
+           overdue fines are raised automatically by a database trigger. The page only ever
+           shows what the database decides.</p>
+      </section>
     </section>
 
+    <!-- ===== CATALOGUE ===== -->
     <section id="books" class="panel">
       <header class="page-head">
-        <h1>Catalogue</h1>
-        <p>Browse every title the library holds, with live copy availability.</p>
+        <h2>The Catalogue</h2>
+        <p>Every title on the shelves, with live availability.</p>
       </header>
-      <div class="search">
-        <input type="text" id="bookSearch" placeholder="Search a title, author or subject…" />
-      </div>
+      <div class="search"><input type="text" id="bookSearch" placeholder="Search a title, author or subject…" /></div>
       <div class="card-surface"><table id="booksTable"></table></div>
     </section>
 
+    <!-- ===== ON LOAN ===== -->
     <section id="loans" class="panel">
       <header class="page-head">
-        <h1>On Loan</h1>
-        <p>Books currently out. Overdue ones are flagged in red.</p>
+        <h2>Out on Loan</h2>
+        <p>Books currently with members. Overdue ones are gently flagged.</p>
       </header>
       <div class="card-surface"><table id="loansTable"></table></div>
     </section>
 
+    <!-- ===== ISSUE ===== -->
     <section id="issue" class="panel">
       <header class="page-head">
-        <h1>Issue a Book</h1>
+        <h2>Issue a Book</h2>
         <p>Hand a copy to a member and set the return date.</p>
       </header>
       <form id="issueForm" class="issue-form">
-        <label>Copy on the shelf
-          <select id="copySelect" required></select>
-        </label>
-        <label>Member
-          <select id="memberSelect" required></select>
-        </label>
-        <label>Lend for (days)
-          <input type="number" id="daysInput" value="14" min="1" max="60" />
-        </label>
-        <button type="submit">Issue this book</button>
+        <label>Copy on the shelf<select id="copySelect" required></select></label>
+        <label>Member<select id="memberSelect" required></select></label>
+        <label>Lend for (days)<input type="number" id="daysInput" value="14" min="1" max="60" /></label>
+        <button type="submit" class="solid-btn">Issue this book</button>
         <p id="issueMsg" class="msg"></p>
       </form>
     </section>
 
+    <!-- ===== MEMBERS ===== -->
     <section id="members" class="panel">
       <header class="page-head">
-        <h1>Members</h1>
+        <h2>Our Members</h2>
         <p>Everyone registered to borrow from the library.</p>
       </header>
       <div class="card-surface"><table id="membersTable"></table></div>
     </section>
 
+    <!-- ===== FINES ===== -->
     <section id="fines" class="panel">
       <header class="page-head">
-        <h1>Fines</h1>
+        <h2>Fines</h2>
         <p>Outstanding dues, totalled per member.</p>
       </header>
       <div class="card-surface"><table id="finesTable"></table></div>
     </section>
 
   </main>
-</div>
+
+  <footer class="site-foot">
+    <span class="logo small">Athenaeum</span>
+    <span>· a DBMS capstone · MySQL · made with care</span>
+  </footer>
 
 <script src="app.js"></script>
 </body>

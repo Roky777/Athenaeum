@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Athenaeum — Library Management System · Project Report</title>
+<style>
+  :root{ --navy:#26415e; --blue:#2f5170; --accent:#a8503a; --ink:#2c2a26;
+         --muted:#7a7263; --line:#ece2d4; --code-bg:#23303f; --soft:#f4ece0; }
+  *{box-sizing:border-box;}
+  html{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  body{font-family:"Segoe UI",Helvetica,Arial,sans-serif;color:var(--ink);line-height:1.55;margin:0;font-size:11.5pt;}
+  h1,h2,h3,h4{color:var(--navy);line-height:1.25;}
+  h2{font-size:20pt;border-bottom:3px solid var(--accent);padding-bottom:6px;margin-top:6px;}
+  h3{font-size:14pt;margin-top:22px;color:var(--blue);}
+  h4{font-size:12pt;margin-top:16px;color:var(--accent);}
+  p{margin:8px 0;}
+  code{font-family:"SF Mono",Consolas,Menlo,monospace;background:#f1e7d9;color:#9a3f2b;padding:1px 5px;border-radius:4px;font-size:9.5pt;}
+  pre{background:var(--code-bg);color:#e8edf2;padding:14px 16px;border-radius:8px;overflow:auto;font-size:8.6pt;line-height:1.5;font-family:"SF Mono",Consolas,monospace;border-left:4px solid var(--accent);margin:10px 0;}
+  pre .c{color:#8aa0b6;font-style:italic;} pre .k{color:#8cc6ff;} pre .s{color:#a9d7b0;}
+  table{border-collapse:collapse;width:100%;margin:12px 0;font-size:9.3pt;}
+  th,td{border:1px solid var(--line);padding:6px 9px;text-align:left;vertical-align:top;}
+  th{background:var(--blue);color:#fff;} tr:nth-child(even) td{background:var(--soft);}
+  .note{background:#f6efe4;border-left:4px solid var(--accent);padding:10px 14px;border-radius:6px;margin:12px 0;}
+  .q{background:#eef3f7;border-left:4px solid var(--navy);padding:10px 14px;border-radius:6px;margin:10px 0;}
+  .q b{color:var(--navy);}
+  .page-break{page-break-before:always;}
+  .cover{height:96vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;background:linear-gradient(140deg,#26415e,#2f5170);color:#fff;border-radius:14px;}
+  .cover h1{color:#fff;font-size:36pt;margin:0 30px;font-family:Georgia,serif;}
+  .cover .sub{font-size:15pt;opacity:.92;margin-top:14px;}
+  .cover .meta{margin-top:50px;font-size:12pt;opacity:.9;}
+  ul.tight li{margin:3px 0;}
+  @page{margin:16mm 14mm;}
+  @media print{ h2{page-break-after:avoid;} pre,table{page-break-inside:avoid;} }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>Athenaeum</h1>
+  <div class="sub">Library Management System — MySQL Implementation</div>
+  <div class="sub" style="font-size:12pt;">Database Management Systems · Capstone Project</div>
+  <div class="meta">Project Report &amp; Technical Documentation<br>
+    Backend: MySQL 8.0 · Frontend: HTML / CSS / JS + Express<br>
+    Hosted on Vercel (app) + Aiven (database)</div>
+</div>
+
+<div class="page-break"></div>
+<h2>Contents</h2>
+<ol>
+  <li>Overview &amp; Objectives</li>
+  <li>System Architecture (3-tier)</li>
+  <li>Entity–Relationship Design</li>
+  <li>Schema &amp; Constraints (<code>sql/01_schema.sql</code>)</li>
+  <li>Normalization (1NF → 3NF)</li>
+  <li>Data Dictionary</li>
+  <li>Sample Data</li>
+  <li>Views, Queries, Triggers &amp; Procedures</li>
+  <li>Frontend &amp; Backend Integration</li>
+  <li>Deployment (Docker · Aiven · Vercel)</li>
+  <li>DBMS Concepts Reference</li>
+  <li>Testing</li>
+  <li>Viva Questions &amp; Answers</li>
+</ol>
+
+<div class="page-break"></div>
+<h2>1. Overview &amp; Objectives</h2>
+<p><b>Athenaeum</b> is a complete Library Management System on a normalized MySQL database. It models
+real library operations: cataloguing books, tracking each physical copy, registering members and staff,
+issuing/returning books, charging late fines, and handling reservations.</p>
+<ul class="tight">
+  <li>Relational schema in <b>3NF</b> with full integrity constraints.</li>
+  <li>All relationship types — <b>1:M</b>, <b>M:N</b>, <b>recursive</b>, <b>1:1</b>.</li>
+  <li>Advanced SQL — joins, subqueries, aggregates, <code>GROUP BY/HAVING</code>, views, indexes.</li>
+  <li>Integrity in the database — triggers, stored procedures, transactions.</li>
+  <li>A working frontend connected to the <b>live database, hosted online</b>.</li>
+</ul>
+
+<h2>2. System Architecture (3-tier)</h2>
+<p>A browser cannot connect to MySQL directly, so the system uses three tiers:</p>
+<pre><span class="c">Browser (HTML/CSS/JS)  -->  Express API (Node)  -->  MySQL (library_db)
+   fetch('/api/...')         views + stored procs       tables + triggers
+   public/                   api/                       Aiven (cloud)</span></pre>
+<ul class="tight">
+  <li><b>Presentation</b> — vanilla front-end in <code>public/</code>.</li>
+  <li><b>Application</b> — Express in <code>api/</code>; calls views and stored procedures, returns JSON.</li>
+  <li><b>Data</b> — MySQL holds the schema and all integrity logic.</li>
+</ul>
+
+<div class="page-break"></div>
+<h2>3. Entity–Relationship Design</h2>
+<table>
+<tr><th>Relationship</th><th>Type</th><th>Implemented by</th></tr>
+<tr><td>Publisher → Book</td><td>1 : M</td><td><code>book.publisher_id</code></td></tr>
+<tr><td>Category → Book</td><td>1 : M</td><td><code>book.category_id</code></td></tr>
+<tr><td>Category → Category</td><td>1 : M recursive</td><td><code>category.parent_id</code></td></tr>
+<tr><td>Book ↔ Author</td><td>M : N</td><td><code>book_author</code> junction</td></tr>
+<tr><td>Book → BookCopy</td><td>1 : M</td><td><code>book_copy.book_id</code></td></tr>
+<tr><td>BookCopy → Borrowing</td><td>1 : M</td><td><code>borrowing.copy_id</code></td></tr>
+<tr><td>Member → Borrowing</td><td>1 : M</td><td><code>borrowing.member_id</code></td></tr>
+<tr><td>Staff → Borrowing</td><td>1 : M</td><td><code>borrowing.issued_by</code></td></tr>
+<tr><td>Borrowing → Fine</td><td>1 : 1</td><td><code>fine.borrow_id</code> UNIQUE</td></tr>
+<tr><td>Book/Member → Reservation</td><td>1 : M</td><td><code>reservation</code> FKs</td></tr>
+</table>
+<p>Key design choice: <code>book</code> (title) is separated from <code>book_copy</code> (physical item),
+so one title can have many copies, each with its own status.</p>
+
+<h2>4. Schema &amp; Constraints (<code>sql/01_schema.sql</code>)</h2>
+<p>11 InnoDB tables. Constraint types used: <b>PRIMARY KEY</b>, <b>FOREIGN KEY</b> (with
+RESTRICT / CASCADE / SET NULL), <b>UNIQUE</b> (isbn, barcode, email), <b>NOT NULL</b>, <b>DEFAULT</b>,
+<b>CHECK</b> (price ≥ 0, due ≥ borrow, birth-year range), and <b>ENUM</b> for status fields. Indexes are
+added on searched/filtered columns; an <code>ALTER TABLE</code> adds an audit timestamp.</p>
+<pre><span class="k">CREATE TABLE</span> book (
+  book_id <span class="k">INT AUTO_INCREMENT PRIMARY KEY</span>, isbn <span class="k">CHAR</span>(13) <span class="k">NOT NULL UNIQUE</span>,
+  title <span class="k">VARCHAR</span>(200) <span class="k">NOT NULL</span>, publisher_id <span class="k">INT NOT NULL</span>, category_id <span class="k">INT NOT NULL</span>,
+  price <span class="k">DECIMAL</span>(8,2) <span class="k">CHECK</span>(price &gt;= 0),
+  <span class="k">FOREIGN KEY</span>(publisher_id) <span class="k">REFERENCES</span> publisher(publisher_id) <span class="k">ON DELETE RESTRICT</span>,
+  <span class="k">FOREIGN KEY</span>(category_id)  <span class="k">REFERENCES</span> category(category_id)   <span class="k">ON DELETE RESTRICT</span>
+) <span class="k">ENGINE</span>=InnoDB;</pre>
+
+<div class="page-break"></div>
+<h2>5. Normalization (1NF → 3NF)</h2>
+<h4>1NF</h4><p>Atomic values only. Multi-valued authors and multiple copies moved to
+<code>book_author</code> and <code>book_copy</code>.</p>
+<h4>2NF</h4><p>No partial dependency. In <code>book_author</code> (composite key
+<code>book_id, author_id</code>), the only attribute <code>author_role</code> depends on the whole key.</p>
+<h4>3NF</h4><p>No transitive dependency. Publisher city lives in <code>publisher</code>, category data in
+<code>category</code>, fine data in <code>fine</code> — each non-key attribute depends only on its key.</p>
+<div class="note"><b>Result:</b> every non-key attribute depends on the key, the whole key, and nothing but
+the key. No redundancy, no insert/update/delete anomalies — the schema is in 3NF.</div>
+
+<h2>6. Data Dictionary (key tables)</h2>
+<h4>book</h4>
+<table>
+<tr><th>Column</th><th>Type</th><th>Constraints</th></tr>
+<tr><td>book_id</td><td>INT</td><td>PK, AUTO_INCREMENT</td></tr>
+<tr><td>isbn</td><td>CHAR(13)</td><td>NOT NULL, UNIQUE</td></tr>
+<tr><td>title</td><td>VARCHAR(200)</td><td>NOT NULL</td></tr>
+<tr><td>publisher_id / category_id</td><td>INT</td><td>NOT NULL, FK</td></tr>
+<tr><td>price</td><td>DECIMAL(8,2)</td><td>CHECK ≥ 0</td></tr>
+</table>
+<h4>borrowing</h4>
+<table>
+<tr><th>Column</th><th>Type</th><th>Constraints</th></tr>
+<tr><td>borrow_id</td><td>INT</td><td>PK</td></tr>
+<tr><td>copy_id / member_id</td><td>INT</td><td>NOT NULL, FK</td></tr>
+<tr><td>due_date</td><td>DATE</td><td>NOT NULL, CHECK ≥ borrow_date</td></tr>
+<tr><td>return_date</td><td>DATE</td><td>NULL = still on loan</td></tr>
+</table>
+
+<h2>7. Sample Data</h2>
+<p>~200 records: 10 publishers, 12 categories, 20 authors, 25 books, ~24 author links, 40 copies,
+20 members, 5 staff, 30 borrowings, 7 fines, 8 reservations. Loans include returned, active, and overdue
+cases so the views and fine logic show real results.</p>
+
+<div class="page-break"></div>
+<h2>8. Views, Queries, Triggers &amp; Procedures</h2>
+<h4>Views (<code>sql/03_views.sql</code>)</h4>
+<p><code>vw_book_catalogue</code> (authors merged via <code>GROUP_CONCAT</code>),
+<code>vw_book_availability</code>, <code>vw_active_loans</code> (with <code>DATEDIFF</code> days overdue),
+<code>vw_outstanding_fines</code>.</p>
+<h4>Queries (<code>sql/04_queries.sql</code>)</h4>
+<p>Inner/left/self joins; aggregates with <code>GROUP BY … HAVING</code>; scalar, correlated (EXISTS) and
+NOT IN subqueries; UPDATE/DELETE inside a transaction.</p>
+<h4>Triggers &amp; procedures (<code>sql/05_procedures.sql</code>)</h4>
+<pre><span class="c">-- block issuing an unavailable copy</span>
+<span class="k">CREATE TRIGGER</span> trg_borrow_before_insert <span class="k">BEFORE INSERT ON</span> borrowing ...
+  <span class="k">IF</span> v_status &lt;&gt; <span class="s">'Available' THEN SIGNAL SQLSTATE</span> <span class="s">'45000'</span> ...;
+
+<span class="c">-- on late return, raise a fine automatically</span>
+<span class="k">CREATE TRIGGER</span> trg_borrow_after_update <span class="k">AFTER UPDATE ON</span> borrowing ...
+  <span class="k">IF DATEDIFF</span>(NEW.return_date,NEW.due_date) &gt; 0 <span class="k">THEN INSERT INTO</span> fine ...;
+
+<span class="c">-- transactional issue, with rollback on error</span>
+<span class="k">CREATE PROCEDURE</span> sp_issue_book(...) <span class="k">START TRANSACTION</span>; ... <span class="k">COMMIT</span>;</pre>
+
+<h2>9. Frontend &amp; Backend Integration</h2>
+<p>The front-end (<code>public/</code>) is a warm, editorial single-page UI — a script logo, serif
+headings, a hero banner, and clean tables. JavaScript calls the API with <code>fetch()</code> and renders
+JSON. Issue/return go through stored procedures, so triggers fire automatically and their error messages
+(e.g. "Copy not available") are shown to the user — genuine frontend–backend–database integration.</p>
+<pre>app.get(<span class="s">'/api/books'</span>, ... <span class="s">'SELECT * FROM vw_book_catalogue ...'</span>);
+app.post(<span class="s">'/api/loans'</span>, ... <span class="s">'CALL sp_issue_book(?,?,?,?,@bid)'</span>);</pre>
+
+<div class="page-break"></div>
+<h2>10. Deployment (Docker · Aiven · Vercel)</h2>
+<h4>Local (Docker)</h4>
+<pre>docker compose up -d   <span class="c"># MySQL + auto-loads sql/</span>
+npm start              <span class="c"># http://localhost:3000</span></pre>
+<h4>Database — Aiven (cloud MySQL)</h4>
+<pre>docker run --rm -i -v <span class="s">"$PWD/sql:/s"</span> mysql:8.0 \
+  sh -c <span class="s">"mysql -h HOST -P PORT -u avnadmin -pPASS --ssl-mode=REQUIRED &lt; /s/init.sql"</span></pre>
+<h4>App — Vercel (serverless)</h4>
+<p><code>vercel.json</code> serves <code>public/</code> statically and routes <code>/api/*</code> to the
+serverless function <code>api/index.js</code>. The database connection is supplied as environment
+variables, never hard-coded:</p>
+<pre>MYSQL_URL = mysql://avnadmin:****@HOST:PORT/library_db
+DB_SSL    = true</pre>
+<div class="note">The pool in <code>api/db.js</code> reads <code>MYSQL_URL</code>/<code>DB_*</code> from the
+environment and falls back to the local Docker defaults — the same code runs locally and in the cloud.</div>
+
+<h2>11. DBMS Concepts Reference</h2>
+<table>
+<tr><th>Concept</th><th>Where it appears</th></tr>
+<tr><td>Keys: super, candidate, primary, foreign, composite, surrogate</td><td>all <code>*_id</code>, <code>book_author</code>, <code>isbn</code></td></tr>
+<tr><td>Integrity: entity, referential, domain</td><td>PK, FK, CHECK/ENUM</td></tr>
+<tr><td>SQL sub-languages: DDL / DML / DCL / TCL</td><td>schema / data / privileges / transactions</td></tr>
+<tr><td>JOINs: inner, left, self</td><td><code>sql/04_queries.sql</code></td></tr>
+<tr><td>Subqueries: scalar, correlated, IN</td><td><code>sql/04_queries.sql</code></td></tr>
+<tr><td>Normal forms: 1NF, 2NF, 3NF, BCNF</td><td>Section 5</td></tr>
+<tr><td>ACID transactions</td><td><code>sp_issue_book</code>, <code>sp_return_book</code></td></tr>
+<tr><td>Index / View / Trigger / Procedure / Function</td><td>Section 8</td></tr>
+</table>
+
+<h2>12. Testing</h2>
+<table>
+<tr><th>#</th><th>Test</th><th>Expected</th></tr>
+<tr><td>1</td><td>Issue an available copy</td><td>Loan created; copy → Borrowed (trigger)</td></tr>
+<tr><td>2</td><td>Issue a borrowed copy</td><td>Rejected by before-insert trigger</td></tr>
+<tr><td>3</td><td>Return late</td><td>Copy freed; fine auto-created</td></tr>
+<tr><td>4</td><td>Duplicate ISBN</td><td>Rejected by UNIQUE</td></tr>
+<tr><td>5</td><td>price = -50</td><td>Rejected by CHECK</td></tr>
+<tr><td>6</td><td>Delete publisher with books</td><td>Rejected by ON DELETE RESTRICT</td></tr>
+</table>
+
+<div class="page-break"></div>
+<h2>13. Viva Questions &amp; Answers</h2>
+<div class="q"><b>Q. Why 3NF?</b><br>It removes redundancy and anomalies; every non-key attribute depends
+only on the primary key, so each fact is stored once.</div>
+<div class="q"><b>Q. Where is the M:N relationship?</b><br>Book ↔ Author, via the junction
+<code>book_author</code> with composite PK <code>(book_id, author_id)</code>.</div>
+<div class="q"><b>Q. Recursive relationship?</b><br><code>category.parent_id</code> references
+<code>category.category_id</code>.</div>
+<div class="q"><b>Q. How is 1:1 made?</b><br>A UNIQUE foreign key — <code>fine.borrow_id</code>.</div>
+<div class="q"><b>Q. Why separate book and book_copy?</b><br>To store title facts once and track each physical
+copy's status separately.</div>
+<div class="q"><b>Q. WHERE vs HAVING?</b><br>WHERE filters rows before grouping; HAVING filters groups
+after aggregation.</div>
+<div class="q"><b>Q. What are ACID properties and where are they used?</b><br>Atomicity, Consistency,
+Isolation, Durability — in the issue/return stored procedures wrapped in transactions with rollback.</div>
+<div class="q"><b>Q. How is integrity enforced without the app?</b><br>Constraints (PK/FK/UNIQUE/CHECK/ENUM)
+plus triggers — e.g. blocking an unavailable copy and auto-creating a late fine.</div>
+<div class="q"><b>Q. Why can't the browser talk to MySQL directly?</b><br>No DB driver and the security
+sandbox forbid it; a backend (Express on Vercel) sits in between.</div>
+<div class="q"><b>Q. How is it hosted?</b><br>The database runs on Aiven (cloud MySQL); the app runs as
+serverless functions on Vercel, connected via the <code>MYSQL_URL</code> environment variable.</div>
+<div class="q"><b>Q. ON DELETE CASCADE vs RESTRICT vs SET NULL?</b><br>CASCADE deletes children with the
+parent; RESTRICT blocks deletion while children exist; SET NULL clears the child's FK. We use CASCADE for
+junctions, RESTRICT to protect loan history, SET NULL for optional issuing staff.</div>
+
+<p style="margin-top:36px;text-align:center;color:var(--muted);">— End of Report —</p>
+</body>
+</html>

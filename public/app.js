@@ -18,6 +18,12 @@ document.querySelectorAll('.nav-item').forEach(item => {
   });
 });
 
+// ---------- jump to a tab programmatically (hero button) ----------
+function goTo(tab) {
+  const btn = document.querySelector(`.nav-item[data-tab="${tab}"]`);
+  if (btn) btn.click();
+}
+
 // ---------- table helper ----------
 function buildTable(el, rows, cols) {
   if (!rows || rows.error) { el.innerHTML = `<tr><td style="color:#a23b2e">⚠ ${rows?.error || 'Could not load'}</td></tr>`; return; }
