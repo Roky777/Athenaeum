@@ -4,6 +4,18 @@ A relational **Library Management System** for the DBMS capstone: a normalized M
 database (schema, views, triggers, stored procedures) with a vanilla HTML/CSS/JS
 front-end served by a small Express API.
 
+**Live demo:** https://athenaeum-roky-pauls-projects.vercel.app
+**Stack:** MySQL · Node/Express · vanilla HTML/CSS/JS · deployed on Vercel (app) + Aiven (database)
+
+## Features
+
+- **Dashboard** — live counts of titles, active members, loans on issue, and outstanding fines
+- **Catalogue** — searchable book list with real-time copy availability
+- **Members** — directory with active/inactive status
+- **Issue / Return** — lending workflow backed by stored procedures + transactions
+- **Auto fines** — late returns generate a fine automatically via a database trigger
+- **Responsive, handmade-style UI** that works on desktop, tablet, and phone
+
 ## Project structure
 
 ```
